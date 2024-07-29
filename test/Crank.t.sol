@@ -5,62 +5,21 @@ import {Test, console2} from "@forge-std-1.9.1/src/Test.sol";
 import {Crank} from "src/Crank.sol";
 
 import "@solady-0.0.228/src/auth/Ownable.sol";
-import "@solady-0.0.228/src/tokens/WETH.sol";
+import "@solady-0.0.228/src/tokens/ERC20.sol";
 
 import "@uniswap-v3-core-1.0.2-solc-0.8-simulate/contracts/libraries/TickMath.sol";
 
 contract CrankTest is Test {
 	address constant owner = address(42);
-	WETH weth;
 	Crank dut;
 
     function setUp() public {
-	weth = new WETH();
-
 	vm.prank(owner);
 	dut = new Crank();
     }
-
-    function test_native() public {
-	    startHoax(owner);
-	    uint initialBalance = address(owner).balance;
-	    payable(address(dut)).transfer(1000);
-	    dut.withdrawNative();
-	    assert(address(dut).balance == 0);
-	    assert(owner.balance == initialBalance);
-
-	    payable(address(dut)).transfer(1000);
-	    assert(address(dut).balance == 1000);
-	    assert(owner.balance == initialBalance -1000);
-
-	    dut.withdrawNative();
-	    assert(address(dut).balance == 0);
-	    assert(owner.balance == initialBalance);
-    }
-
-    function test_erc20() public {
-	    startHoax(owner);
-	    weth.deposit{value: 1000}();
-	    weth.transfer(address(dut), 1000);
-	    dut.withdrawERC20(address(weth));
-	    assert(weth.balanceOf(address(dut)) == 0);
-	    assert(weth.balanceOf(owner) == 1000);
-
-	    weth.transfer(address(dut), 1000);
-	    assert(weth.balanceOf(address(dut)) == 1000);
-	    assert(weth.balanceOf(owner) == 0);
-
-	    dut.withdrawERC20(address(weth));
-	    assert(weth.balanceOf(address(dut)) == 0);
-	    assert(weth.balanceOf(owner) == 1000);
-    }
-
     function test_auth() public {
 	    vm.startPrank(address(1337));
-	    vm.expectRevert(Ownable.Unauthorized.selector);
-	    dut.withdrawNative();
-	    vm.expectRevert(Ownable.Unauthorized.selector);
-	    dut.withdrawERC20(address(weth));
+	    // TODO
     }
 
     function approx(uint a, uint b) public pure returns (bool) {

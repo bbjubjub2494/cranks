@@ -12,9 +12,10 @@ import "src/libraries/PoolAddress.sol";
 import "src/interfaces/Pool.sol";
 import "src/interfaces/AToken.sol";
 import "src/interfaces/PoolDataProvider.sol";
+import "src/ERC20Container.sol";
 
 
-contract Crank is IUniswapV3SwapCallback, Ownable {
+contract Crank is IUniswapV3SwapCallback, Ownable, ERC20Container {
 	    struct SwapCallbackData {
         PoolAddress.PoolKey poolKey;
     }
@@ -22,9 +23,6 @@ contract Crank is IUniswapV3SwapCallback, Ownable {
 	constructor() {
 		_initializeOwner(msg.sender);
 	}
-
-    receive() external payable {
-    }
 
     // UniV3 factory (Mainnet, Polygon, Optimism, Arbitrum, Testnets)
     address public constant factory = 0x1F98431c8aD98523631AE4a59f267346ea31F984;
@@ -37,15 +35,6 @@ contract Crank is IUniswapV3SwapCallback, Ownable {
     IAToken public aWsteth = IAToken(0xC035a7cf15375cE2706766804551791aD035E0C2);
     ERC20 public weth = ERC20(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
     ERC20 public wsteth = ERC20(0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0);
-
-    function withdrawNative() external onlyOwner {
-	    // live dangerously. Works best assuming EIP-4758
-	    selfdestruct(payable(msg.sender));
-    }
-
-    function withdrawERC20(address token) external onlyOwner {
-	    ERC20(token).transfer(msg.sender, ERC20(token).balanceOf(address(this)));
-    }
 
     function wind(uint wstethAmount, uint24 fee, uint160 sqrtPriceLimitX96) external onlyOwner {
 	    PoolAddress.PoolKey memory poolKey =
