@@ -28,6 +28,9 @@ contract Crank is IUniswapV3SwapCallback, Ownable, ERC20Container {
     address public constant factory = 0x1F98431c8aD98523631AE4a59f267346ea31F984;
     uint16 public constant referralCode = 0;
 
+    // transient storage callback lock to prevent unauthorized from flash swapping
+    uint constant CALLBACK_LOCK = 0x364dc090748f5c0b79091ce041de48d4cffbbb61e8c524062913953b7ab199ef; //uint(keccak256("Crank Callback Lock"))
+
     // Aave
     Pool public constant lendingPool = Pool(0x4e033931ad43597d96D6bcc25c280717730B58B1);
     PoolDataProvider public constant poolDataProvider = PoolDataProvider(0xa3206d66cF94AA1e93B21a9D8d409d6375309F4A);
@@ -36,59 +39,51 @@ contract Crank is IUniswapV3SwapCallback, Ownable, ERC20Container {
     ERC20 public weth = ERC20(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
     ERC20 public wsteth = ERC20(0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0);
 
-    function wind(uint wstethAmount, uint24 fee, uint160 sqrtPriceLimitX96) external onlyOwner {
+    function _swap(bool zeroForOne, int amount, uint24 fee, uint160 sqrtPriceLimitX96) internal {
+	assembly {
+		tstore(CALLBACK_LOCK, 1)
+	}
 	    PoolAddress.PoolKey memory poolKey =
-            PoolAddress.PoolKey({token0: address(wsteth), token1: address(weth), fee: fee});
-        IUniswapV3Pool pool = IUniswapV3Pool(PoolAddress.computeAddress(factory, poolKey));
-	bool zeroForOne = false;
-        pool.swap(
-            address(this),
+	    PoolAddress.PoolKey({token0: address(wsteth), token1: address(weth), fee: fee});
+	IUniswapV3Pool pool = IUniswapV3Pool(PoolAddress.computeAddress(factory, poolKey));
+	pool.swap(
+	    address(this),
 	    zeroForOne,
-	    -int256(wstethAmount),
+	    amount,
 	    sqrtPriceLimitX96,
-            abi.encode(
-                SwapCallbackData({
-                    poolKey: poolKey
-                })
-            )
-        );
+	    abi.encode(
+		    SwapCallbackData({
+			    poolKey: poolKey
+		    })
+	    ));
+	assembly {
+		tstore(CALLBACK_LOCK, 0)
+	}
+    }
+
+
+    function wind(uint wstethAmount, uint24 fee, uint160 sqrtPriceLimitX96) external onlyOwner {
+	    _swap(false,
+	    -int256(wstethAmount),
+	    fee,
+		 sqrtPriceLimitX96);
     }
 
     function unwind(uint wstethAmount, uint24 fee, uint160 sqrtPriceLimitX96) external onlyOwner {
-	    PoolAddress.PoolKey memory poolKey =
-            PoolAddress.PoolKey({token0: address(wsteth), token1: address(weth), fee: fee});
-        IUniswapV3Pool pool = IUniswapV3Pool(PoolAddress.computeAddress(factory, poolKey));
-	bool zeroForOne = true;
-        pool.swap(
-            address(this),
-	    zeroForOne,
+        _swap(
+	    true,
 	    int256(wstethAmount),
-	    sqrtPriceLimitX96,
-            abi.encode(
-                SwapCallbackData({
-                    poolKey: poolKey
-                })
-            )
-        );
+	    fee,
+	    sqrtPriceLimitX96);
     }
 
     function close(uint24 fee, uint160 sqrtPriceLimitX96) external onlyOwner {
 	    (,,uint wethAmount,,,,,,) = poolDataProvider.getUserReserveData(address(weth), address(this));
-	    PoolAddress.PoolKey memory poolKey =
-            PoolAddress.PoolKey({token0: address(wsteth), token1: address(weth), fee: fee});
-        IUniswapV3Pool pool = IUniswapV3Pool(PoolAddress.computeAddress(factory, poolKey));
-	bool zeroForOne = true;
-        pool.swap(
-            address(this),
-	    zeroForOne,
+        _swap(
+	    true,
 	    -int256(wethAmount),
-	    sqrtPriceLimitX96,
-            abi.encode(
-                SwapCallbackData({
-                    poolKey: poolKey
-                })
-            )
-        );
+	    fee,
+	    sqrtPriceLimitX96);
     }
 
     function uniswapV3SwapCallback(
@@ -96,6 +91,11 @@ contract Crank is IUniswapV3SwapCallback, Ownable, ERC20Container {
         int256 amount1Delta,
         bytes calldata data
     ) external {
+	    uint callbackLock;
+	    assembly {
+		    callbackLock := tload(CALLBACK_LOCK)
+	    }
+	    require(callbackLock != 0);
 	    SwapCallbackData memory decoded = abi.decode(data, (SwapCallbackData));
 	    IUniswapV3Pool pool = IUniswapV3Pool(PoolAddress.computeAddress(factory, decoded.poolKey));
 	    require(msg.sender == address(pool));
