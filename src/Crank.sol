@@ -3,6 +3,7 @@ pragma solidity ^0.8.26;
 
 import "@solady-0.0.228/src/auth/Ownable.sol";
 import "@solady-0.0.228/src/tokens/ERC20.sol";
+import "@solady-0.0.228/src/utils/UUPSUpgradeable.sol";
 
 import "@uniswap-v3-core-1.0.2-solc-0.8-simulate/contracts/interfaces/callback/IUniswapV3SwapCallback.sol";
 import "@uniswap-v3-core-1.0.2-solc-0.8-simulate/contracts/interfaces/IUniswapV3Pool.sol";
@@ -14,14 +15,17 @@ import "src/interfaces/AToken.sol";
 import "src/interfaces/PoolDataProvider.sol";
 import "src/ERC20Container.sol";
 
-contract Crank is IUniswapV3SwapCallback, Ownable, ERC20Container {
+contract Crank is IUniswapV3SwapCallback, Ownable, ERC20Container, UUPSUpgradeable {
     struct SwapCallbackData {
         PoolAddress.PoolKey poolKey;
     }
 
-    constructor() {
+    function initialize() external {
+        // will revert if already initialized
         _initializeOwner(msg.sender);
     }
+
+    function _authorizeUpgrade(address) internal override onlyOwner {}
 
     // UniV3 factory (Mainnet, Polygon, Optimism, Arbitrum, Testnets)
     address public constant factory = 0x1F98431c8aD98523631AE4a59f267346ea31F984;
@@ -33,10 +37,10 @@ contract Crank is IUniswapV3SwapCallback, Ownable, ERC20Container {
     // Aave
     Pool public constant lendingPool = Pool(0x4e033931ad43597d96D6bcc25c280717730B58B1);
     PoolDataProvider public constant poolDataProvider = PoolDataProvider(0xa3206d66cF94AA1e93B21a9D8d409d6375309F4A);
-    IAToken public aWeth = IAToken(0xfA1fDbBD71B0aA16162D76914d69cD8CB3Ef92da);
-    IAToken public aWsteth = IAToken(0xC035a7cf15375cE2706766804551791aD035E0C2);
-    ERC20 public weth = ERC20(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
-    ERC20 public wsteth = ERC20(0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0);
+    IAToken public constant aWeth = IAToken(0xfA1fDbBD71B0aA16162D76914d69cD8CB3Ef92da);
+    IAToken public constant aWsteth = IAToken(0xC035a7cf15375cE2706766804551791aD035E0C2);
+    ERC20 public constant weth = ERC20(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
+    ERC20 public constant wsteth = ERC20(0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0);
 
     function _swap(bool zeroForOne, int256 amount, uint24 fee, uint160 sqrtPriceLimitX96) internal {
         assembly {

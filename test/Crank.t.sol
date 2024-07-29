@@ -6,6 +6,7 @@ import {Crank} from "src/Crank.sol";
 
 import "@solady-0.0.228/src/auth/Ownable.sol";
 import "@solady-0.0.228/src/tokens/ERC20.sol";
+import "@solady-0.0.228/src/utils/LibClone.sol";
 
 import "@uniswap-v3-core-1.0.2-solc-0.8-simulate/contracts/libraries/TickMath.sol";
 
@@ -13,14 +14,22 @@ contract CrankTest is Test {
     address constant owner = address(42);
     Crank dut;
 
+    ERC20 constant weth = ERC20(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
+    ERC20 constant wsteth = ERC20(0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0);
+    ERC20 constant aWsteth = ERC20(0xC035a7cf15375cE2706766804551791aD035E0C2);
+
     function setUp() public {
+        vm.createSelectFork(vm.envString("ETH_RPC_URL"));
+        address impl = address(new Crank());
+        dut = Crank(LibClone.deployERC1967(impl));
         vm.prank(owner);
-        dut = new Crank();
+        dut.initialize();
     }
 
     function test_auth() public {
         vm.startPrank(address(1337));
-        // TODO
+        vm.expectRevert(Ownable.Unauthorized.selector);
+        dut.withdrawERC20(address(weth));
     }
 
     function approx(uint256 a, uint256 b) public pure returns (bool) {
@@ -31,13 +40,9 @@ contract CrankTest is Test {
     }
 
     function test_wind() public {
-        ERC20 weth = ERC20(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
-        ERC20 wsteth = ERC20(0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0);
-        ERC20 aWsteth = ERC20(0xC035a7cf15375cE2706766804551791aD035E0C2);
-        vm.createSelectFork(vm.envString("ETH_RPC_URL"));
-        dut = new Crank();
         uint160 sqrtPriceLimitX96 = TickMath.MAX_SQRT_RATIO - 1;
         deal(address(wsteth), address(dut), 1 ether);
+        vm.startPrank(owner);
         dut.wind(1 ether, 100, sqrtPriceLimitX96);
         assert(aWsteth.balanceOf(address(dut)) == 2 ether);
         sqrtPriceLimitX96 = TickMath.MIN_SQRT_RATIO + 1;
@@ -50,5 +55,12 @@ contract CrankTest is Test {
         dut.close(100, sqrtPriceLimitX96);
         assert(approx(aWsteth.balanceOf(address(dut)), 1 ether));
         dut.withdrawERC20(address(aWsteth));
+    }
+
+    function test_upgrade() public {
+        address impl = address(new Crank());
+        vm.startPrank(owner);
+        dut.upgradeToAndCall(impl, "");
+        dut.withdrawERC20(address(weth));
     }
 }
