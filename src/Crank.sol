@@ -84,7 +84,8 @@ contract Crank is IUniswapV3SwapCallback, Ownable, ERC20Container, UUPSUpgradeab
             uint256 wethAmount = uint256(amount1Delta);
             uint256 wstethBalance = wsteth.balanceOf(address(this));
             wsteth.approve(address(lendingPool), wstethBalance);
-            lendingPool.supply(address(wsteth), wstethBalance, address(this), referralCode);
+            // keep 1 wei for the storage slots
+            lendingPool.supply(address(wsteth), wstethBalance - 1, address(this), referralCode);
 
             lendingPool.borrow(address(weth), wethAmount, 2, referralCode, address(this));
             weth.transfer(msg.sender, wethAmount);
@@ -92,7 +93,8 @@ contract Crank is IUniswapV3SwapCallback, Ownable, ERC20Container, UUPSUpgradeab
             uint256 wstethAmount = uint256(amount0Delta);
             uint256 wethBalance = weth.balanceOf(address(this));
             weth.approve(address(lendingPool), wethBalance);
-            lendingPool.repay(address(weth), wethBalance, 2, address(this));
+            // keep 1 wei for the storage slots
+            lendingPool.repay(address(weth), wethBalance - 1, 2, address(this));
             lendingPool.withdraw(address(wsteth), wstethAmount, address(this));
             wsteth.transfer(msg.sender, wstethAmount);
         }

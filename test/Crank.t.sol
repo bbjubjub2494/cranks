@@ -44,7 +44,7 @@ contract CrankTest is Test {
         deal(address(wsteth), address(dut), 1 ether);
         vm.startPrank(owner);
         dut.wind(1 ether, 100, sqrtPriceLimitX96);
-        assert(aWsteth.balanceOf(address(dut)) == 2 ether);
+        assert(approx(aWsteth.balanceOf(address(dut)), 2 ether));
         sqrtPriceLimitX96 = TickMath.MIN_SQRT_RATIO + 1;
         dut.unwind(0.5 ether, 100, sqrtPriceLimitX96);
         assert(approx(aWsteth.balanceOf(address(dut)), 1.5 ether));
