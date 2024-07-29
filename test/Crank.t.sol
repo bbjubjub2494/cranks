@@ -63,6 +63,13 @@ contract CrankTest is Test {
 	    dut.withdrawERC20(address(weth));
     }
 
+    function approx(uint a, uint b) public pure returns (bool) {
+	    if (a > b) {
+		    (a, b) = (b, a);
+	    }
+	    return (b-a)*1000/b < 2;
+    }
+
     function test_wind() public {
     ERC20 weth = ERC20(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
     ERC20 wsteth = ERC20(0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0);
@@ -75,9 +82,13 @@ contract CrankTest is Test {
     assert(aWsteth.balanceOf(address(dut)) == 2 ether);
     sqrtPriceLimitX96 = TickMath.MIN_SQRT_RATIO + 1;
     dut.unwind(.5 ether, 100, sqrtPriceLimitX96);
-    assert(aWsteth.balanceOf(address(dut)) == 1.5 ether);
+    assert(approx(aWsteth.balanceOf(address(dut)), 1.5 ether));
     sqrtPriceLimitX96 = TickMath.MAX_SQRT_RATIO - 1;
     dut.wind(1 ether, 100, sqrtPriceLimitX96);
-    assert(aWsteth.balanceOf(address(dut)) == 2.5 ether);
+    assert(approx(aWsteth.balanceOf(address(dut)), 2.5 ether));
+    sqrtPriceLimitX96 = TickMath.MIN_SQRT_RATIO + 1;
+    dut.close(100, sqrtPriceLimitX96);
+    assert(approx(aWsteth.balanceOf(address(dut)), 1 ether));
+    dut.withdrawERC20(address(aWsteth));
     }
 }

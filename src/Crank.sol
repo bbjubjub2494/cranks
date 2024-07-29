@@ -11,6 +11,7 @@ import "src/libraries/PoolAddress.sol";
 // AAVE
 import "src/interfaces/Pool.sol";
 import "src/interfaces/AToken.sol";
+import "src/interfaces/PoolDataProvider.sol";
 
 
 contract Crank is IUniswapV3SwapCallback, Ownable {
@@ -31,6 +32,7 @@ contract Crank is IUniswapV3SwapCallback, Ownable {
 
     // Aave
     Pool public constant lendingPool = Pool(0x4e033931ad43597d96D6bcc25c280717730B58B1);
+    PoolDataProvider public constant poolDataProvider = PoolDataProvider(0xa3206d66cF94AA1e93B21a9D8d409d6375309F4A);
     IAToken public aWeth = IAToken(0xfA1fDbBD71B0aA16162D76914d69cD8CB3Ef92da);
     IAToken public aWsteth = IAToken(0xC035a7cf15375cE2706766804551791aD035E0C2);
     ERC20 public weth = ERC20(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
@@ -63,7 +65,26 @@ contract Crank is IUniswapV3SwapCallback, Ownable {
         );
     }
 
-    function unwind(uint wethAmount, uint24 fee, uint160 sqrtPriceLimitX96) external onlyOwner {
+    function unwind(uint wstethAmount, uint24 fee, uint160 sqrtPriceLimitX96) external onlyOwner {
+	    PoolAddress.PoolKey memory poolKey =
+            PoolAddress.PoolKey({token0: address(wsteth), token1: address(weth), fee: fee});
+        IUniswapV3Pool pool = IUniswapV3Pool(PoolAddress.computeAddress(factory, poolKey));
+	bool zeroForOne = true;
+        pool.swap(
+            address(this),
+	    zeroForOne,
+	    int256(wstethAmount),
+	    sqrtPriceLimitX96,
+            abi.encode(
+                SwapCallbackData({
+                    poolKey: poolKey
+                })
+            )
+        );
+    }
+
+    function close(uint24 fee, uint160 sqrtPriceLimitX96) external onlyOwner {
+	    (,,uint wethAmount,,,,,,) = poolDataProvider.getUserReserveData(address(weth), address(this));
 	    PoolAddress.PoolKey memory poolKey =
             PoolAddress.PoolKey({token0: address(wsteth), token1: address(weth), fee: fee});
         IUniswapV3Pool pool = IUniswapV3Pool(PoolAddress.computeAddress(factory, poolKey));
