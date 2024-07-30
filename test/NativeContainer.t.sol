@@ -3,7 +3,7 @@ pragma solidity ^0.8.26;
 
 import {NativeContainer} from "src/NativeContainer.sol";
 
-import {Test, console2} from "@forge-std-1.9.1/Test.sol";
+import {Test, console2} from "@forge-std-1.9.1/src/Test.sol";
 
 import "@solady-0.0.228/src/auth/Ownable.sol";
 
