@@ -13,6 +13,7 @@ import "src/libraries/PoolAddress.sol";
 import "src/interfaces/Pool.sol";
 import "src/interfaces/AToken.sol";
 import "src/interfaces/PoolDataProvider.sol";
+import "src/interfaces/PoolAddressesProvider.sol";
 import "src/ERC20Container.sol";
 
 contract Crank is IUniswapV3SwapCallback, Ownable, ERC20Container, UUPSUpgradeable {
@@ -20,25 +21,22 @@ contract Crank is IUniswapV3SwapCallback, Ownable, ERC20Container, UUPSUpgradeab
         PoolAddress.PoolKey poolKey;
     }
 
-    function initialize() external {
+    address _factory;
+    PoolAddressesProvider _aave;
+
+    function initialize(address owner, PoolAddressesProvider aave, address univ3Factory) external {
         // will revert if already initialized
-        _initializeOwner(msg.sender);
+        _initializeOwner(owner);
+	_factory = univ3Factory;
+	_aave = aave;
     }
 
     function _authorizeUpgrade(address) internal override onlyOwner {}
-
-    // UniV3 factory (Mainnet, Polygon, Optimism, Arbitrum, Testnets)
-    address public constant factory = 0x1F98431c8aD98523631AE4a59f267346ea31F984;
     uint16 public constant referralCode = 0;
 
     // transient storage callback lock to prevent unauthorized from flash swapping
     uint256 constant CALLBACK_LOCK = 0x364dc090748f5c0b79091ce041de48d4cffbbb61e8c524062913953b7ab199ef; //uint(keccak256("Crank Callback Lock"))
 
-    // Aave
-    Pool public constant lendingPool = Pool(0x4e033931ad43597d96D6bcc25c280717730B58B1);
-    PoolDataProvider public constant poolDataProvider = PoolDataProvider(0xa3206d66cF94AA1e93B21a9D8d409d6375309F4A);
-    IAToken public constant aWeth = IAToken(0xfA1fDbBD71B0aA16162D76914d69cD8CB3Ef92da);
-    IAToken public constant aWsteth = IAToken(0xC035a7cf15375cE2706766804551791aD035E0C2);
     ERC20 public constant weth = ERC20(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
     ERC20 public constant wsteth = ERC20(0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0);
 
@@ -48,7 +46,7 @@ contract Crank is IUniswapV3SwapCallback, Ownable, ERC20Container, UUPSUpgradeab
         }
         PoolAddress.PoolKey memory poolKey =
             PoolAddress.PoolKey({token0: address(wsteth), token1: address(weth), fee: fee});
-        IUniswapV3Pool pool = IUniswapV3Pool(PoolAddress.computeAddress(factory, poolKey));
+        IUniswapV3Pool pool = IUniswapV3Pool(PoolAddress.computeAddress(_factory, poolKey));
         pool.swap(
             address(this), zeroForOne, amount, sqrtPriceLimitX96, abi.encode(SwapCallbackData({poolKey: poolKey}))
         );
@@ -66,7 +64,7 @@ contract Crank is IUniswapV3SwapCallback, Ownable, ERC20Container, UUPSUpgradeab
     }
 
     function close(uint24 fee, uint160 sqrtPriceLimitX96) external onlyOwner {
-        (,, uint256 wethAmount,,,,,,) = poolDataProvider.getUserReserveData(address(weth), address(this));
+        (,, uint256 wethAmount,,,,,,) = _aave.getPoolDataProvider().getUserReserveData(address(weth), address(this));
         _swap(true, -int256(wethAmount), fee, sqrtPriceLimitX96);
     }
 
@@ -77,8 +75,9 @@ contract Crank is IUniswapV3SwapCallback, Ownable, ERC20Container, UUPSUpgradeab
         }
         require(callbackLock != 0);
         SwapCallbackData memory decoded = abi.decode(data, (SwapCallbackData));
-        IUniswapV3Pool pool = IUniswapV3Pool(PoolAddress.computeAddress(factory, decoded.poolKey));
+        IUniswapV3Pool pool = IUniswapV3Pool(PoolAddress.computeAddress(_factory, decoded.poolKey));
         require(msg.sender == address(pool));
+	Pool lendingPool = _aave.getPool();
 
         if (amount1Delta > 0) {
             uint256 wethAmount = uint256(amount1Delta);

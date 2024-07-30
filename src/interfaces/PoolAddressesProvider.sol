@@ -1,5 +1,8 @@
 pragma solidity ^0.8.10;
 
+import "./Pool.sol";
+import "./PoolDataProvider.sol";
+
 interface PoolAddressesProvider {
     event ACLAdminUpdated(address indexed oldAddress, address indexed newAddress);
     event ACLManagerUpdated(address indexed oldAddress, address indexed newAddress);
@@ -23,9 +26,9 @@ interface PoolAddressesProvider {
     function getACLManager() external view returns (address);
     function getAddress(bytes32 id) external view returns (address);
     function getMarketId() external view returns (string memory);
-    function getPool() external view returns (address);
+    function getPool() external view returns (Pool);
     function getPoolConfigurator() external view returns (address);
-    function getPoolDataProvider() external view returns (address);
+    function getPoolDataProvider() external view returns (PoolDataProvider);
     function getPriceOracle() external view returns (address);
     function getPriceOracleSentinel() external view returns (address);
     function owner() external view returns (address);
