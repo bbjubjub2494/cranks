@@ -56,18 +56,30 @@ contract CrankTest is Test {
         uint160 sqrtPriceLimitX96 = TickMath.MAX_SQRT_RATIO - 1;
         deal(address(wsteth), address(dut), 1 ether);
         vm.startPrank(owner);
-        dut.wind(1 ether, 100, sqrtPriceLimitX96);
+        dut.wind(1 ether, 100, sqrtPriceLimitX96, 0);
         assert(approx(aWsteth.balanceOf(address(dut)), 2 ether));
         sqrtPriceLimitX96 = TickMath.MIN_SQRT_RATIO + 1;
-        dut.unwind(0.5 ether, 100, sqrtPriceLimitX96);
+        dut.unwind(0.5 ether, 100, sqrtPriceLimitX96, 0);
         assert(approx(aWsteth.balanceOf(address(dut)), 1.5 ether));
         sqrtPriceLimitX96 = TickMath.MAX_SQRT_RATIO - 1;
-        dut.wind(1 ether, 100, sqrtPriceLimitX96);
+        dut.wind(1 ether, 100, sqrtPriceLimitX96, 0);
         assert(approx(aWsteth.balanceOf(address(dut)), 2.5 ether));
         sqrtPriceLimitX96 = TickMath.MIN_SQRT_RATIO + 1;
-        dut.close(100, sqrtPriceLimitX96);
+        dut.close(100, sqrtPriceLimitX96, 0);
         assert(approx(aWsteth.balanceOf(address(dut)), 1 ether));
         dut.withdrawERC20(address(aWsteth));
+    }
+
+    function test_minAmountIn() public {
+        uint160 sqrtPriceLimitX96 = TickMath.MAX_SQRT_RATIO - 1;
+        deal(address(wsteth), address(dut), 1 ether);
+        vm.startPrank(owner);
+	vm.expectRevert(Crank.Limit.selector);
+        dut.wind(1 ether, 100, sqrtPriceLimitX96, 1.5 ether);
+        dut.wind(1 ether, 100, sqrtPriceLimitX96, 0);
+        sqrtPriceLimitX96 = TickMath.MIN_SQRT_RATIO + 1;
+	vm.expectRevert(Crank.Limit.selector);
+        dut.unwind(1 ether, 100, sqrtPriceLimitX96, 1.5 ether);
     }
 
     function test_upgrade() public {

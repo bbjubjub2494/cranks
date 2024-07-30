@@ -19,7 +19,10 @@ import "src/ERC20Container.sol";
 contract Crank is IUniswapV3SwapCallback, Ownable, ERC20Container, UUPSUpgradeable {
     struct SwapCallbackData {
         PoolAddress.PoolKey poolKey;
+	uint limit;
     }
+
+    error Limit(); // frontrunning protection
 
     address _factory;
     PoolAddressesProvider _aave;
@@ -40,7 +43,7 @@ contract Crank is IUniswapV3SwapCallback, Ownable, ERC20Container, UUPSUpgradeab
     ERC20 public constant weth = ERC20(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
     ERC20 public constant wsteth = ERC20(0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0);
 
-    function _swap(bool zeroForOne, int256 amount, uint24 fee, uint160 sqrtPriceLimitX96) internal {
+    function _swap(bool zeroForOne, int256 amount, uint24 fee, uint160 sqrtPriceLimitX96, uint limit) internal {
         assembly {
             tstore(CALLBACK_LOCK, 1)
         }
@@ -48,24 +51,24 @@ contract Crank is IUniswapV3SwapCallback, Ownable, ERC20Container, UUPSUpgradeab
             PoolAddress.PoolKey({token0: address(wsteth), token1: address(weth), fee: fee});
         IUniswapV3Pool pool = IUniswapV3Pool(PoolAddress.computeAddress(_factory, poolKey));
         pool.swap(
-            address(this), zeroForOne, amount, sqrtPriceLimitX96, abi.encode(SwapCallbackData({poolKey: poolKey}))
+            address(this), zeroForOne, amount, sqrtPriceLimitX96, abi.encode(SwapCallbackData({poolKey: poolKey, limit: limit}))
         );
         assembly {
             tstore(CALLBACK_LOCK, 0)
         }
     }
 
-    function wind(uint256 wstethAmount, uint24 fee, uint160 sqrtPriceLimitX96) external onlyOwner {
-        _swap(false, -int256(wstethAmount), fee, sqrtPriceLimitX96);
+    function wind(uint256 wstethAmount, uint24 fee, uint160 sqrtPriceLimitX96, uint limit) external onlyOwner {
+        _swap(false, -int256(wstethAmount), fee, sqrtPriceLimitX96, limit);
     }
 
-    function unwind(uint256 wstethAmount, uint24 fee, uint160 sqrtPriceLimitX96) external onlyOwner {
-        _swap(true, int256(wstethAmount), fee, sqrtPriceLimitX96);
+    function unwind(uint256 wstethAmount, uint24 fee, uint160 sqrtPriceLimitX96, uint limit) external onlyOwner {
+        _swap(true, int256(wstethAmount), fee, sqrtPriceLimitX96, limit);
     }
 
-    function close(uint24 fee, uint160 sqrtPriceLimitX96) external onlyOwner {
+    function close(uint24 fee, uint160 sqrtPriceLimitX96, uint limit) external onlyOwner {
         (,, uint256 wethAmount,,,,,,) = _aave.getPoolDataProvider().getUserReserveData(address(weth), address(this));
-        _swap(true, -int256(wethAmount), fee, sqrtPriceLimitX96);
+        _swap(true, -int256(wethAmount), fee, sqrtPriceLimitX96, limit);
     }
 
     function uniswapV3SwapCallback(int256 amount0Delta, int256 amount1Delta, bytes calldata data) external {
@@ -81,6 +84,7 @@ contract Crank is IUniswapV3SwapCallback, Ownable, ERC20Container, UUPSUpgradeab
 
         if (amount1Delta > 0) {
             uint256 wethAmount = uint256(amount1Delta);
+	    require(wethAmount >= decoded.limit, Limit());
             uint256 wstethBalance = wsteth.balanceOf(address(this));
             wsteth.approve(address(lendingPool), wstethBalance);
             // keep 1 wei for the storage slots
@@ -89,6 +93,8 @@ contract Crank is IUniswapV3SwapCallback, Ownable, ERC20Container, UUPSUpgradeab
             lendingPool.borrow(address(weth), wethAmount, 2, referralCode, address(this));
             weth.transfer(msg.sender, wethAmount);
         } else {
+            uint256 wethAmount = uint256(-amount1Delta);
+	    require(wethAmount >= decoded.limit, Limit());
             uint256 wstethAmount = uint256(amount0Delta);
             uint256 wethBalance = weth.balanceOf(address(this));
             weth.approve(address(lendingPool), wethBalance);
