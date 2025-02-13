@@ -53,6 +53,7 @@ contract CrankTest is Test {
     }
 
     function test_wind() public {
+	vm.skip(block.chainid != 1);
         uint160 sqrtPriceLimitX96 = TickMath.MAX_SQRT_RATIO - 1;
         deal(address(wsteth), address(dut), 1 ether);
         vm.startPrank(owner);
@@ -71,6 +72,7 @@ contract CrankTest is Test {
     }
 
     function test_minAmountIn() public {
+	vm.skip(block.chainid != 1);
         uint160 sqrtPriceLimitX96 = TickMath.MAX_SQRT_RATIO - 1;
         deal(address(wsteth), address(dut), 1 ether);
         vm.startPrank(owner);
@@ -83,6 +85,7 @@ contract CrankTest is Test {
     }
 
     function test_upgrade() public {
+	vm.skip(block.chainid != 1);
         address impl = address(new Crank());
         vm.startPrank(owner);
         dut.upgradeToAndCall(impl, "");

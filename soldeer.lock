@@ -1,18 +1,13 @@
+[[dependencies]]
+name = "balancer-v2"
+version = "1.0.0"
+url = "https://github.com/balancer/balancer-v2-monorepo/archive/df3e08ed1adc0cac85c3a193bbe8e14b2a120f9a.zip"
+checksum = "13df466ef714b8ed32ce1b86048fcc0450d196d0c65d63d13a5bfdaa3e47f48a"
+integrity = "a4b9b8765e550f46b4f00f594caaedbe9656c5073e4e522aaca14d1666a88401"
 
 [[dependencies]]
-name = "@uniswap-v3-core"
-version = "1.0.2-solc-0.8-simulate"
-source = "https://soldeer-revisions.s3.amazonaws.com/@uniswap-v3-core/1_0_2-solc-0_8-simulate_22-01-2024_13:19:54_v3-core.zip"
-checksum = "68949c67a4f22044e4c8dc716362b6d79b07e8990e720bec9b116f54b233ef57"
-
-[[dependencies]]
-name = "solady"
-version = "0.0.228"
-source = "https://soldeer-revisions.s3.amazonaws.com/solady/0_0_228_28-07-2024_08:37:28_solady.zip"
-checksum = "fa66187898039b91958e962e49db3e31ca920e48599c62eec43cf03156335210"
-
-[[dependencies]]
-name = "forge-std"
-version = "1.9.1"
-source = "https://soldeer-revisions.s3.amazonaws.com/forge-std/v1_9_1_03-07-2024_14:44:59_forge-std-v1.9.1.zip"
-checksum = "110b35ad3604d91a919c521c71206c18cd07b29c750bd90b5cbbaf37288c9636"
+name = "stakewise-v3-core"
+version = "v3.0.0"
+url = "https://github.com/stakewise/v3-core/archive/refs/tags/v3.0.0.zip"
+checksum = "fd8c1f7ce55e20d51d42cd03f684c382b81bff1374ff55a8e33df87bcda4b7b3"
+integrity = "d6163f590c689637fcbff2494fcc28c767bc41e9fa6e6d7c1d395fd1dc2b009d"

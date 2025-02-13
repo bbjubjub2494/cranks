@@ -6,3 +6,5 @@ via_ir = true
 "@uniswap-v3-core" = "1.0.2-solc-0.8-simulate"
 solady = "0.0.228"
 forge-std = "1.9.1"
+balancer-v2 = { version = "1.0.0", url = "https://github.com/balancer/balancer-v2-monorepo/archive/df3e08ed1adc0cac85c3a193bbe8e14b2a120f9a.zip" }
+stakewise-v3-core = { version = "v3.0.0", url = "https://github.com/stakewise/v3-core/archive/refs/tags/v3.0.0.zip" }
