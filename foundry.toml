@@ -8,3 +8,4 @@ solady = "0.0.228"
 forge-std = "1.9.1"
 balancer-v2 = { version = "1.0.0", url = "https://github.com/balancer/balancer-v2-monorepo/archive/df3e08ed1adc0cac85c3a193bbe8e14b2a120f9a.zip" }
 stakewise-v3-core = { version = "v3.0.0", url = "https://github.com/stakewise/v3-core/archive/refs/tags/v3.0.0.zip" }
+aave-v3-core = { version = "1.19.4", url = "https://github.com/aave/aave-v3-core/archive/refs/tags/v1.19.4.zip" }

@@ -20,7 +20,7 @@ contract OsGnoCrankTest is Test {
         vm.createSelectFork(vm.envString("ETH_RPC_URL"));
         vm.label(address(gno), "Gno");
         vm.label(address(osgno), "OsGno");
-        vm.label(address(flashloans), "flashloans");
+        //vm.label(address(aave_pool), "AAVE Pool");
         address impl = address(new OsGnoCrank());
         dut = OsGnoCrank(LibClone.deployERC1967(impl));
 	dut.initialize(owner);

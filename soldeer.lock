@@ -1,4 +1,11 @@
 [[dependencies]]
+name = "aave-v3-core"
+version = "1.19.4"
+url = "https://github.com/aave/aave-v3-core/archive/refs/tags/v1.19.4.zip"
+checksum = "da07a9ebd390eb2474b76f7c9b6cf66fbe7879361a6cf15a55ced664b1c259d5"
+integrity = "41fda5558791ba88f7b60c1a0dab2e2125a8f05c4b566f34ee926ca5f6ea8007"
+
+[[dependencies]]
 name = "balancer-v2"
 version = "1.0.0"
 url = "https://github.com/balancer/balancer-v2-monorepo/archive/df3e08ed1adc0cac85c3a193bbe8e14b2a120f9a.zip"
